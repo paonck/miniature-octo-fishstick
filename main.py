@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     vpn = connect_random_vpn()
 
-    time.sleep(10)  # Adjust based on VPN connection time
+    time.sleep(20)  # Increased time to ensure VPN connection fully establishes
 
     show_current_ip()
 
